@@ -1,96 +1,85 @@
-import React, { Component } from "react"
+import React, {useEffect, useState } from "react"
 import PropTypes from 'prop-types'; 
 import { Searchbar } from "components/Searchbar/Searchbar"
 
 import {Modal} from "components/Modal/Modal"
 import { Container } from "./App.styled"
-import {getImages} from "components/utilities/getImages"
+import getImages from "components/utilities/getImages"
 import { ImageGallery } from "components/ImageGallery/ImageGallery"
 import { ImageGalleryItem} from "components/ImageGalleryItem/ImageGalleryItem"
 import { Button } from "components/Button/Button"
 import { Loader } from "components/Loader/Loader"
 
-export class App extends Component {
-  state = {
-    searchQuery: "",
-    hits: [],
-    isLoading: false,
-    isShowModal: false,
-    selectedImg: "",
-    page: 1,
-    totalHits: 0,
-    error: null,
-    
-  };
 
- showModal = () => {
-     this.setState({ isShowModal: true })
- }
+export const App = () => {
+  const [searchQuery, setSearchQuery] = useState("")
+  const [hits, setHits] = useState([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [isShowModal, setIsShowModal] = useState(false)
+  const [selectedImg, setSelectedImg] = useState("")
+  const [page, setPage] = useState(1)
+  const [totalHits, setTotalHits] = useState(0)
+  const [error, setError] = useState(null)
 
- closeModal = () => {
-     this.setState({ isShowModal: false, selectedImg: "" })
- }  
-  
- selectImg = ({ target }) => {
-     if (target.src) {
-       this.setState({selectedImg: target.alt});
-       this.showModal();
-   }
-   } 
-  handleClick = ({ page}) => {
-     this.setState(prevState => ({
-       page: prevState.page + 1,
-     }));
-  };
-  
-  componentDidUpdate(prevProps, prevState) {
-    const { searchQuery, page } = this.state;
-    if (prevState.searchQuery !== searchQuery ||
-      prevState.page !== page) {
-      this.fetchImages(searchQuery, page);
-      this.setState({ isLoading: true });
-    }
+
+  const showModal = () => {
+    setIsShowModal(true)
   }
 
-  fetchImages = async (searchQuery, page) => {
-      try {
-         const {hits, totalHits} = await getImages(searchQuery, page);
-          this.setState(prevState => ({
-          hits: [...prevState.hits, ...hits],
-          totalHits: totalHits
-        }));
-            
-        } catch (error) {
-          this.setState({ error: error.message});
-        } finally {
-          this.setState({ isLoading: false })}
+  const closeModal = () => {
+    setIsShowModal(false)
+    setSelectedImg("")
 
-  };
+  }
   
-  createSearchText = value => {
-    
-    this.setState({
-       searchQuery: value,
-       hits: [],
-       isLoading: false,
-       isShowModal: false,
-       selectedImg: "",
-       page: 1,
-       totalHits: 0,
-       error: null,
-    });
+  const selectImg = ({ target }) => {
+    if (target.src) {
+      setSelectedImg(target.alt);
+      showModal();
+    }
   };
 
-render() {
-  const { searchQuery, isShowModal, isLoading, hits, selectedImg, page, totalHits, error  } = this.state
+  const handleClick = () => {
+    setPage(page => page + 1);
+  };
+
+  useEffect(() => {
+    if (searchQuery === "") {
+      return;
+    }
+
+     const fetchImages = async () => {
+       setIsLoading(true)
+        try {
+       
+         const {hits, totalHits} = await getImages(searchQuery, page)
+          setHits(prev => [...prev, ...hits])
+          setTotalHits(totalHits)
+              
+        } catch (error) {
+          setError(error.message);
+        } finally {
+          setIsLoading(false)}
+  
+  };
+    fetchImages();
+ 
+  },[searchQuery, page])
+
+
+  const createSearchText = value => {
+    setSearchQuery(value);
+    setPage(1);
+  };
+
   return (
     <Container>
-      <Searchbar createSearchText={this.createSearchText} />
+      <Searchbar createSearchText={createSearchText} />
 
       {isLoading && <Loader />}
       
       {hits.length > 0 && (
-      <ImageGallery onClick={this.selectImg}>
+      <ImageGallery onClick={selectImg}>
           <ImageGalleryItem
                searchText={searchQuery}
                images={hits}
@@ -101,16 +90,15 @@ render() {
       </ImageGallery>)}
       
       { hits && page !== Math.ceil(totalHits / 12) &&  hits.length >= 12 && (
-      <Button handleClick={this.handleClick} />)}
+      <Button handleClick={handleClick} />)}
       
       {error && (<p>Something went wrong</p>)}
 
-      {isShowModal && (<Modal closeModal={this.closeModal} selectedImg={selectedImg} />)}
+      {isShowModal && (<Modal closeModal={closeModal} selectedImg={selectedImg} />)}
     </Container>
-      )
-    }
+  )
+      
 }
-
 App.propTypes = {
    searchQuery : PropTypes.string,
     hits: PropTypes.array,
@@ -122,4 +110,3 @@ App.propTypes = {
     error: PropTypes.string,
 }
   
-
