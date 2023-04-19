@@ -70,8 +70,9 @@ export const App = () => {
   const createSearchText = value => {
     setSearchQuery(value);
     setPage(1);
-  };
-
+      setHits([])
+    };
+  
   return (
     <Container>
       <Searchbar createSearchText={createSearchText} />
